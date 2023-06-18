@@ -1,0 +1,137 @@
+﻿@model IEnumerable<Mansur_TodoGF.Areas.Identity.Data.Todo>
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="card">
+    @{
+        <div class="card-header input-group mb-3 authorize">
+            <input type="text" id="txtDescription" class="form-control" placeholder="To Do" aria-describedby="btnCancel">
+            <button class="btn btn-outline-secondary hide" type="button" id="btnCancel">Cancel</button>
+        </div>
+    }
+    <input type="hidden" id="todoID" value="0">
+    <ul class="list-group list-group-flush todoList">
+        @{
+            foreach (var item in Model)
+            {
+                <li class="list-group-item id_@item.ID">
+
+                    <div class="row">
+                        <div class="col-md-10 col-sm-8">
+                            <label class="form-check-label">
+                                @item.Description
+                            </label>
+                        </div>
+                        <div class="col-md-2 col-sm-4 authorize">
+                            <a class="btn btn-outline-primary" href="void:javascript" onclick="editTodo(@item.ID,'@item.Description')" title="Edit"> Edit</a>
+                            <a class="btn btn-outline-danger" href="void:javascript" onclick="deleteTodo(@item.ID)" title="Delete"> Delete</a>
+                        </div>
+                    </div>
+
+                </li>
+            }
+        }
+    </ul>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+
+<script>
+    window.onload = function () {
+        if (window.jQuery) {
+            //
+        } else {
+            alert("Jquery Loading failed!");
+        }
+    }
+
+    $(document).ready(function () {
+        const isLoggedIn = '@User.Identity.IsAuthenticated';
+        if (isLoggedIn.toLowerCase() == 'true') {
+            $('.authorize').removeClass('hide')
+            $('.authorizeCheck').prop('disabled', true);
+        } else {
+
+            $('.authorize').addClass('hide')
+            $('.authorizeCheck').addClass('disabled ')
+        }
+
+    });
+
+    $('#txtDescription').keypress(function (event) {
+        var keycode = (event.keyCode ? event.keyCode : event.which);
+        const desc = $(this).val();
+        if (keycode == '13' && desc.length > 3) {
+            const id = $('#todoID').val();
+
+            const model = {
+                id: id,
+                descriptions: desc
+            }
+            //saveTodo
+            $.ajax({
+                url: '@Url.Action("Save","Home")',
+                type: "POST",
+                data: JSON.stringify(model),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (res) {
+                    const id = res.id;
+                    const desc = $('#txtDescription').val();
+                    $('.todoList .id_' + id + '').remove();
+                    $(".todoList").append(`<li class="list-group-item id_` + id + `">
+                    <div class="row">
+                        <div class="col-md-10 col-sm-8">
+
+                                <label class="form-check-label" >`+ desc + `</label>
+                        </div>
+                        <div class="col-md-2 col-sm-4">
+                                <a class="btn btn-outline-primary" href="void:javascript" onclick="editTodo(`+ id + `,'` + desc + `')" title="Edit"> Edit</a>
+                                <a class="btn btn-outline-danger" href="void:javascript" onclick="deleteTodo(`+ id + `)" title="Delete"> Delete</a>
+
+                        </div>
+                    </div>
+                </li>`);
+                    $('#txtDescription').val('');
+                    $('#btnCancel').addClass('hide');
+                    $('#todoID').val(0);
+
+                }, error: function (error) {
+                    alert('Something went wrong');
+                },
+                complete: function (res) {
+
+                }
+            });
+        }
+    });
+
+    function editTodo(id, desc) {
+        $('#todoID').val(id);
+        $('#txtDescription').val(desc);
+        $('#btnCancel').removeClass('hide');
+    }
+
+    function deleteTodo(id) {
+
+        if (confirm('Are you sure you want to delete this?')) {
+            $.ajax({
+                url: '/Home/Delete?id=' + id,
+                type: "GET",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (res) {
+                    $('.todoList .id_' + id + '').remove();
+                }, error: function (error) {
+                    alert('Something went wrong');
+                }
+            });
+        }
+    }
+
+    $("#btnCancel").click(function () {
+        $('#btnCancel').addClass('hide');
+        $('#todoID').val(0);
+        $('#txtDescription').val('');
+    });
+</script>
